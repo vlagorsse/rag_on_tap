@@ -1,0 +1,97 @@
+{
+  "questions": [
+    {
+      "category": "Appearance",
+      "items": [
+        {
+          "field": "appearance_color",
+          "question": "Color: Ranging from straw/pale to pitch black (often measured on the SRM scale)."
+        },
+        {
+          "field": "appearance_clarity",
+          "question": "Clarity: Is it brilliant, hazy, or opaque?"
+        },
+        {
+          "field": "appearance_head",
+          "question": "Head (Foam): Look at the height, color (white, ivory, tan), and \"retention\" (how long it lasts)."
+        },
+        {
+          "field": "appearance_carbonation",
+          "question": "Carbonation: Visible bubbles rising in the glass."
+        }
+      ]
+    },
+    {
+      "category": "Aroma (Smell)",
+      "items": [
+        {
+          "field": "aroma_malt_profile",
+          "question": "Malt Profile: Does it smell like bready crust, caramel, toasted nuts, or roasted coffee?"
+        },
+        {
+          "field": "aroma_hop_aroma",
+          "question": "Hop Aroma: This is where your \"floral\" notes live, along with citrus, pine, or earthy scents."
+        },
+        {
+          "field": "aroma_esters_phenols",
+          "question": "Esters/Phenols: Fruity smells (like banana) or spicy smells (like clove) created by the yeast."
+        }
+      ]
+    },
+    {
+      "category": "Flavor",
+      "items": [
+        {
+          "field": "flavor_balance",
+          "question": "Balance: The relationship between malt sweetness and hop bitterness."
+        },
+        {
+          "field": "flavor_bitterness",
+          "question": "Bitterness: Not just the intensity (IBUs), but the quality. Is it a smooth, lingering bitterness or a harsh, \"medicinal\" bite?"
+        },
+        {
+          "field": "flavor_aftertaste",
+          "question": "Aftertaste (Finish): Does the flavor disappear quickly, or does it coat the palate? Is it dry or sweet?"
+        }
+      ]
+    },
+    {
+      "category": "Mouthfeel",
+      "items": [
+        {
+          "field": "mouthfeel_body",
+          "question": "Body: Is it thin and watery (like a light lager) or thick and \"chewy\" (like an imperial stout)?"
+        },
+        {
+          "field": "mouthfeel_carbonation",
+          "question": "Carbonation: The \"tingle\" on the tongue. Is it prickly, soft, or flat?"
+        },
+        {
+          "field": "mouthfeel_warmth",
+          "question": "Warmth: Do you feel a \"boozy\" heat from the alcohol?"
+        }
+      ]
+    },
+    {
+      "category": "Overall",
+      "items": [
+        {
+          "field": "overall_impression",
+          "question": "Overall Impression: Sometimes a beer hits every technical mark but just isn't \"drinkable.\" This is where you give your subjective final grade."
+        },
+        {
+          "field": "overall_style_accuracy",
+          "question": "Style Accuracy: Does this beer taste like it’s supposed to? If you’re drinking a Pilsner but it tastes like a chocolate bar, it’s a \"bad\" Pilsner, even if it’s a \"good\" drink."
+        },
+        {
+          "field": "overall_beer_clone",
+          "question": "Beer clone: is this beer supposed to be a beer clone, and if it is, is it a good one ?"
+        },
+        {
+          "field": "overall_other_comments",
+          "question": "Other comments: Any other comments interesting to know about this beer ?"
+        }
+      ]
+    }
+  ]
+}

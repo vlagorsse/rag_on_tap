@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment Variables
+.env
+
+# Data Files
+*.jsonl
+*.csv
+*.zip
+recipes/
+
+# Logs
+*.log
+enrichment_log.txt
+
+# OS Files
+.DS_Store
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Backend
+backend/out.log
