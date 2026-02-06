@@ -15,9 +15,13 @@ services:
 
   backend:
     restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   db:
     restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
 networks:
   web:
