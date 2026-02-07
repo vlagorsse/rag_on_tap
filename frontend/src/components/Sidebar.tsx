@@ -7,9 +7,7 @@ export function Sidebar() {
         <div className="bg-amber-500 p-2 rounded-lg">
           <Beer className="text-stone-950 h-6 w-6" />
         </div>
-        <h1 className="font-bold text-lg tracking-tight">
-          Beer RAG on steroids !
-        </h1>
+        <h1 className="font-bold text-lg tracking-tight">Beer RAG</h1>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">
