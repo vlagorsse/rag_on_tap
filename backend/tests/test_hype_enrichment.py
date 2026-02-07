@@ -57,6 +57,7 @@ def test_create_dynamic_model():
 @patch("utilities.hype_enrichment.ChatGoogleGenerativeAI")
 @patch("utilities.hype_enrichment.DataService")
 @patch("glob.glob")
+@patch("utilities.hype_enrichment.GOOGLE_API_KEY", "fake_key")
 def test_process_recipes_flow(
     mock_glob, mock_data_service_class, mock_chat_google_class, tmp_path
 ):
