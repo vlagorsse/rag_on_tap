@@ -36,3 +36,15 @@ jobs:
       - name: Run tests
         working-directory: ./backend
         run: uv run pytest
+
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        env:
+          GOOGLE_API_KEY: "dummy"
+        run: docker compose build
