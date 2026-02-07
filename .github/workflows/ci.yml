@@ -3,10 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
-  pull_request:
-    branches:
-      - master
+      - '**'
 
 jobs:
   test-backend:
@@ -48,3 +45,20 @@ jobs:
         env:
           GOOGLE_API_KEY: "dummy"
         run: docker compose build
+
+  deploy:
+    name: Deploy
+    needs: [test-backend, build-images]
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deployment
+        env:
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_API_KEY }}
+        run: |
+          PAYLOAD='{}'
+          SIGNATURE=$(python3 -c "import hmac, hashlib, os; print(hmac.new(os.environ['DEPLOY_SECRET'].encode(), '${PAYLOAD}'.encode(), hashlib.sha1).hexdigest())")
+          curl -f -X POST https://deploy.rag-on-tap.com/hooks/rag-app \
+            -H "X-Hub-Signature: sha1=$SIGNATURE" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
