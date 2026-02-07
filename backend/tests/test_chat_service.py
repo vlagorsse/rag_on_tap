@@ -12,18 +12,33 @@ class TestChatService:
     def mock_config(self):
         config = MagicMock(spec=ConfigService)
         config.google_api_key = "fake_key"
+        config.connection_string = "postgresql+psycopg://user:pass@host/db"
         return config
 
+    @patch("services.chat_service.psycopg")
+    @patch("services.chat_service.PostgresChatMessageHistory")
+    @patch("services.chat_service.ConversationSummaryBufferMemory")
     @patch("services.chat_service.ChatGoogleGenerativeAI")
     @patch("services.chat_service.BeerRAGTool", spec=BaseTool)
     @patch("services.chat_service.AgentExecutor")
     def test_chat_invocation(
-        self, mock_executor_class, mock_tool_class, mock_llm_class, mock_config
+        self,
+        mock_executor_class,
+        mock_tool_class,
+        mock_llm_class,
+        mock_memory_class,
+        mock_pg_history,
+        mock_psycopg,
+        mock_config,
     ):
         """Test that ChatService invokes the agent correctly."""
         # Setup mocks
         mock_executor = mock_executor_class.return_value
         mock_executor.invoke.return_value = {"output": "Mocked AI Response"}
+
+        # Mock connection context manager
+        mock_conn = MagicMock()
+        mock_psycopg.connect.return_value.__enter__.return_value = mock_conn
 
         service = ChatService(config=mock_config)
         response = service.chat("Hello")
@@ -35,9 +50,18 @@ class TestChatService:
         args, kwargs = mock_executor_class.call_args
         assert "memory" in kwargs
 
+    @patch("services.chat_service.psycopg")
+    @patch("services.chat_service.PostgresChatMessageHistory")
     @patch("services.chat_service.ChatGoogleGenerativeAI")
     @patch("services.chat_service.BeerRAGTool", spec=BaseTool)
-    def test_initialization(self, mock_tool_class, mock_llm_class, mock_config):
+    def test_initialization(
+        self,
+        mock_tool_class,
+        mock_llm_class,
+        mock_pg_history,
+        mock_psycopg,
+        mock_config,
+    ):
         """Test that services are initialized with correct parameters."""
         service = ChatService(
             config=mock_config, model_name="test-model", embedding_model="test-embed"
