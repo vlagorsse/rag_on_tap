@@ -1,5 +1,13 @@
-from pydantic import Field
+import logging
+from enum import Enum
+from dotenv import find_dotenv
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LLMProvider(str, Enum):
+    GOOGLE = "google"
+    OPENROUTER = "openrouter"
 
 
 class ConfigService(BaseSettings):
@@ -14,9 +22,32 @@ class ConfigService(BaseSettings):
     hf_home: str | None = Field(default=None, alias="HF_HOME")
     google_api_key: str | None = Field(default=None, alias="GOOGLE_API_KEY")
 
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore", populate_by_name=True
+    llm_provider: LLMProvider = Field(default=LLMProvider.GOOGLE, alias="LLM_PROVIDER")
+    openrouter_api_key: str | None = Field(default=None, alias="OPENROUTER_API_KEY")
+    openrouter_model: str = Field(
+        default="z-ai/glm-4.5-air:free",
+        alias="OPENROUTER_MODEL",
     )
+
+    model_config = SettingsConfigDict(
+        env_file=find_dotenv(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
+    )
+
+    @model_validator(mode="after")
+    def check_provider_keys(self) -> "ConfigService":
+        if self.llm_provider == LLMProvider.GOOGLE and not (self.google_api_key and self.google_api_key.strip()):
+            raise ValueError("GOOGLE_API_KEY must be set when LLM_PROVIDER is 'google'")
+        if (
+            self.llm_provider == LLMProvider.OPENROUTER
+            and not self.openrouter_api_key
+        ):
+            raise ValueError(
+                "OPENROUTER_API_KEY must be set when LLM_PROVIDER is 'openrouter'"
+            )
+        return self
 
     @property
     def connection_string(self) -> str:

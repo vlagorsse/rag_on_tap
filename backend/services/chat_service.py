@@ -1,14 +1,16 @@
 import contextlib
 import logging
-import psycopg
+import uuid
 
+import psycopg
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
-from langchain_classic.memory import ConversationSummaryBufferMemory
+from langchain_classic.memory import ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_postgres import PostgresChatMessageHistory
 
-from services.config_service import ConfigService
+from services.config_service import ConfigService, LLMProvider
 from services.rag_tool import BeerRAGTool
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ class ChatService:
     def __init__(
         self,
         config: ConfigService,
-        model_name: str = "gemini-2.5-flash-lite",
+        model_name: str | None = None,
         embedding_model: str = "Qwen/Qwen3-Embedding-0.6B",
         rerank_model: str = "Qwen/Qwen3-Reranker-0.6B",
         collection_name: str = "beer_recipes",
@@ -27,20 +29,30 @@ class ChatService:
         self.config = config
 
         # 1. Initialize LLM
-        logger.info(f"Initializing ChatGoogleGenerativeAI with model: {model_name}")
-
-        llm_kwargs = {
-            "model": model_name,
-            "temperature": 0.3,
-        }
-        # Check if key is set and not empty
-        api_key = config.google_api_key
-        if api_key and api_key.strip():
-            llm_kwargs["api_key"] = api_key
+        if config.llm_provider == LLMProvider.OPENROUTER:
+            actual_model = model_name or config.openrouter_model
+            logger.info(
+                f"Initializing ChatOpenAI (OpenRouter) with model: {actual_model}"
+            )
+            self.llm = ChatOpenAI(
+                model=actual_model,
+                openai_api_key=config.openrouter_api_key,
+                openai_api_base="https://openrouter.ai/api/v1",
+                temperature=0.3,
+            )
         else:
-            logger.warning("GOOGLE_API_KEY is not set or empty in ConfigService, relying on environment variables.")
+            actual_model = model_name or "gemini-2.5-flash-lite"
+            logger.info(
+                f"Initializing ChatGoogleGenerativeAI with model: {actual_model}"
+            )
 
-        self.llm = ChatGoogleGenerativeAI(**llm_kwargs)
+            llm_kwargs = {
+                "model": actual_model,
+                "temperature": 0.3,
+            }
+            llm_kwargs["api_key"] = config.google_api_key
+            self.llm = ChatGoogleGenerativeAI(**llm_kwargs)
+
         # 2. Initialize RAG Tool
         self.rag_tool = BeerRAGTool(
             config=config,
@@ -77,7 +89,9 @@ class ChatService:
         self.connection_string = config.connection_string
         # PostgresChatMessageHistory.create_tables needs a connection, not a string
         # We also strip the sqlalchemy driver prefix for psycopg
-        self.psycopg_conn_str = self.connection_string.replace("postgresql+psycopg://", "postgresql://")
+        self.psycopg_conn_str = self.connection_string.replace(
+            "postgresql+psycopg://", "postgresql://"
+        )
         try:
             with psycopg.connect(self.psycopg_conn_str) as conn:
                 PostgresChatMessageHistory.create_tables(conn, "chat_history")
@@ -97,12 +111,11 @@ class ChatService:
                 sync_connection=conn,
             )
 
-            memory = ConversationSummaryBufferMemory(
-                llm=self.llm,
-                max_token_limit=self.max_token_limit,
+            memory = ConversationBufferWindowMemory(
+                k=10,
                 memory_key="chat_history",
                 chat_memory=chat_history,
-                return_messages=True
+                return_messages=True,
             )
 
             executor = AgentExecutor(
@@ -117,8 +130,20 @@ class ChatService:
             if conn:
                 conn.close()
 
-    def chat(self, user_input: str, session_id: str = "default") -> str:
+    def chat(self, user_input: str, session_id: str | None = None) -> str:
         """Sends a message to the agent and returns the response."""
+        # Ensure session_id is a UUID4
+        if session_id is None:
+            session_id = str(uuid.uuid4())
+        else:
+            try:
+                # Validate it is a valid UUID
+                val = uuid.UUID(session_id)
+                session_id = str(val)
+            except ValueError:
+                # If not a valid UUID, generate a new random one
+                session_id = str(uuid.uuid4())
+
         try:
             with self._session_executor(session_id) as executor:
                 response = executor.invoke({"input": user_input})
@@ -137,7 +162,9 @@ class ChatService:
                     if "actions" in chunk:
                         # Intermediate tool calls
                         for action in chunk["actions"]:
-                            logger.info(f"Agent ({session_id}) calling tool: {action.tool}")
+                            logger.info(
+                                f"Agent ({session_id}) calling tool: {action.tool}"
+                            )
                     elif "steps" in chunk:
                         # Results from tools
                         pass

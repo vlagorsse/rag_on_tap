@@ -3,7 +3,7 @@ import logging
 import sys
 
 from services.chat_service import ChatService
-from services.config_service import ConfigService
+from services.config_service import ConfigService, LLMProvider
 
 
 def setup_logging():
@@ -22,7 +22,7 @@ def setup_logging():
 def main():
     parser = argparse.ArgumentParser(description="Beer Expert Chat CLI")
     parser.add_argument(
-        "--model", default="gemini-2.5-flash-lite", help="Gemini model name"
+        "--model", default=None, help="LLM model name (overrides config)"
     )
     parser.add_argument(
         "--collection", default="beer_recipes", help="Vector collection name"
@@ -30,13 +30,15 @@ def main():
     args = parser.parse_args()
 
     setup_logging()
-    config = ConfigService()
-
-    if not config.google_api_key:
-        print("Error: GOOGLE_API_KEY not found in .env file.")
+    try:
+        config = ConfigService()
+    except Exception as e:
+        print(f"Configuration Error: {e}")
         sys.exit(1)
 
-    print("\n--- 🍺 Beer Expert RAG-on-Tap Chat ---")
+    print(
+        f"\n--- 🍺 Beer Expert RAG-on-Tap Chat ({config.llm_provider.value.upper()}) ---"
+    )
     print("Initializing services (loading models)...")
 
     try:
