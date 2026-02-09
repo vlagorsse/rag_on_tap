@@ -235,7 +235,7 @@ def main():
         "--resume", "-r", action="store_true", help="Resume from existing CSV"
     )
     args = parser.parse_args()
-    
+
     config = ConfigService()
     process_recipes(args.output_csv, config, args.resume)
 

@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+
 from dotenv import find_dotenv
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,12 +39,11 @@ class ConfigService(BaseSettings):
 
     @model_validator(mode="after")
     def check_provider_keys(self) -> "ConfigService":
-        if self.llm_provider == LLMProvider.GOOGLE and not (self.google_api_key and self.google_api_key.strip()):
-            raise ValueError("GOOGLE_API_KEY must be set when LLM_PROVIDER is 'google'")
-        if (
-            self.llm_provider == LLMProvider.OPENROUTER
-            and not self.openrouter_api_key
+        if self.llm_provider == LLMProvider.GOOGLE and not (
+            self.google_api_key and self.google_api_key.strip()
         ):
+            raise ValueError("GOOGLE_API_KEY must be set when LLM_PROVIDER is 'google'")
+        if self.llm_provider == LLMProvider.OPENROUTER and not self.openrouter_api_key:
             raise ValueError(
                 "OPENROUTER_API_KEY must be set when LLM_PROVIDER is 'openrouter'"
             )
