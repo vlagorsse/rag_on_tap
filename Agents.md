@@ -11,6 +11,10 @@ This document provides essential context and standards for AI agents and develop
 ## Code Standards & Formatting
 Consistency is mandatory. Always format code according to the following rules:
 
+### Environment & Tooling
+- **direnv:** Use `direnv` to manage environment variables and virtual environments. The `backend/.envrc` should automatically activate the virtual environment and load `.env` variables.
+- **Test Setup:** Ensure `direnv allow` is run in the `backend` directory to load the environment before running tests.
+
 ### Python (Backend)
 - **Formatter:** `black`
 - **Import Sorting:** `isort`
