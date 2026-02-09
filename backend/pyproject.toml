@@ -60,3 +60,7 @@ query-db = "utilities.query_db:main"
 
 [tool.setuptools]
 packages = ["services", "utilities"]
+
+
+[tool.isort]
+profile = "black"
