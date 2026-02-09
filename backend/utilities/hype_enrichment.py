@@ -5,11 +5,10 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict, List
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import Field, create_model
 
@@ -17,7 +16,7 @@ from services.config_service import ConfigService
 from services.data_service import DataService
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 
 # Configuration
 MODEL_NAME = "gemini-2.5-flash-lite"
@@ -26,22 +25,21 @@ MAX_RECIPES = 100
 QUESTIONS_FILE = "hype_questions.json"
 OUTPUT_LOG_FILE = "enrichment_log.txt"
 
-# Google AI Studio configuration
-config = ConfigService()
-GOOGLE_API_KEY = config.google_api_key
-
 logger = logging.getLogger(__name__)
 
 
-def load_llm():
+def load_llm(config: ConfigService):
+    # Load config locally to avoid side effects during import
+    google_api_key = config.google_api_key
+
     logger.info(f"Loading model: {MODEL_NAME} via Google AI Studio...")
-    if not GOOGLE_API_KEY:
+    if not google_api_key:
         logger.error("GOOGLE_API_KEY not found in environment")
         return None
     try:
         llm = ChatGoogleGenerativeAI(
             model=MODEL_NAME,
-            google_api_key=GOOGLE_API_KEY,
+            google_api_key=google_api_key,
             temperature=0.1,
             max_output_tokens=2000,
         )
@@ -133,7 +131,7 @@ def create_dynamic_model():
     return BeerAnalysis
 
 
-def process_recipes(output_csv, resume=False):
+def process_recipes(output_csv, config: ConfigService, resume=False):
     recipe_files = glob.glob(os.path.join(RECIPES_DIR, "*.html"))
     recipe_files.sort(key=os.path.getmtime)
     selected_files = recipe_files[:MAX_RECIPES]
@@ -152,7 +150,7 @@ def process_recipes(output_csv, resume=False):
             logger.info(f"Found {len(processed_ids)} already processed recipes.")
             log_mode = "a"
 
-    llm = load_llm()
+    llm = load_llm(config)
     if not llm:
         return
 
@@ -237,7 +235,9 @@ def main():
         "--resume", "-r", action="store_true", help="Resume from existing CSV"
     )
     args = parser.parse_args()
-    process_recipes(args.output_csv, args.resume)
+    
+    config = ConfigService()
+    process_recipes(args.output_csv, config, args.resume)
 
 
 if __name__ == "__main__":

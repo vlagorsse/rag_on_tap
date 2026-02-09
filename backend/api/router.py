@@ -1,9 +1,8 @@
 import logging
 import uuid
 from functools import lru_cache
-from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from services.chat_service import ChatService
@@ -22,7 +21,7 @@ def get_chat_service():
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 class RecipeResponse(BaseModel):

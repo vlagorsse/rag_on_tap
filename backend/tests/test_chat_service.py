@@ -2,9 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain.tools import BaseTool
-
 from services.chat_service import ChatService
-from services.config_service import ConfigService
+from services.config_service import ConfigService, LLMProvider
 
 
 class TestChatService:
@@ -13,11 +12,12 @@ class TestChatService:
         config = MagicMock(spec=ConfigService)
         config.google_api_key = "fake_key"
         config.connection_string = "postgresql+psycopg://user:pass@host/db"
+        config.llm_provider = LLMProvider.GOOGLE
         return config
 
     @patch("services.chat_service.psycopg")
     @patch("services.chat_service.PostgresChatMessageHistory")
-    @patch("services.chat_service.ConversationSummaryBufferMemory")
+    @patch("services.chat_service.ConversationBufferWindowMemory")
     @patch("services.chat_service.ChatGoogleGenerativeAI")
     @patch("services.chat_service.BeerRAGTool", spec=BaseTool)
     @patch("services.chat_service.AgentExecutor")

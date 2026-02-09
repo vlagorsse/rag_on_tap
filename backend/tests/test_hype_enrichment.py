@@ -4,10 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-
-from utilities.hype_enrichment import (create_dynamic_model,
-                                       extract_metadata_and_text,
-                                       process_recipes)
+from services.config_service import ConfigService, LLMProvider
 
 
 def test_extract_metadata_and_text(tmp_path):
@@ -57,10 +54,14 @@ def test_create_dynamic_model():
 @patch("utilities.hype_enrichment.ChatGoogleGenerativeAI")
 @patch("utilities.hype_enrichment.DataService")
 @patch("glob.glob")
-@patch("utilities.hype_enrichment.GOOGLE_API_KEY", "fake_key")
 def test_process_recipes_flow(
     mock_glob, mock_data_service_class, mock_chat_google_class, tmp_path
 ):
+    # Use a real ConfigService with fake values
+    mock_config = ConfigService(
+        google_api_key="fake_key", llm_provider=LLMProvider.GOOGLE
+    )
+
     # Create the directory and file on disk to avoid FileNotFoundError in os.path.getmtime
     recipes_dir = tmp_path / "recipes"
     recipes_dir.mkdir()
@@ -117,7 +118,7 @@ def test_process_recipes_flow(
         }
 
         output_csv = str(tmp_path / "output.csv")
-        process_recipes(output_csv, resume=False)
+        process_recipes(output_csv, mock_config, resume=False)
 
     # Check that DataService.save was called
     assert mock_data_service.save.called
