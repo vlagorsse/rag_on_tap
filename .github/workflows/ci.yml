@@ -6,6 +6,30 @@ on:
       - '**'
 
 jobs:
+  lint-backend:
+    name: Lint Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: uv sync --frozen --dev
+
+      - name: Check imports (isort)
+        working-directory: ./backend
+        run: uv run isort --check-only .
+
+      - name: Check formatting (black)
+        working-directory: ./backend
+        run: uv run black --check .
+
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
@@ -48,7 +72,7 @@ jobs:
 
   deploy:
     name: Deploy
-    needs: [test-backend, build-images]
+    needs: [lint-backend, test-backend, build-images]
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
