@@ -5,6 +5,7 @@ from functools import lru_cache
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
 from services.chat_service import ChatService
 from services.config_service import ConfigService
 

@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain.tools import BaseTool
+
 from services.chat_service import ChatService
 from services.config_service import ConfigService, LLMProvider
 
