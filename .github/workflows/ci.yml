@@ -30,6 +30,28 @@ jobs:
         working-directory: ./backend
         run: uv run black --check .
 
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Check formatting (prettier)
+        working-directory: ./frontend
+        run: npx prettier --check .
+
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
@@ -72,7 +94,7 @@ jobs:
 
   deploy:
     name: Deploy
-    needs: [lint-backend, test-backend, build-images]
+    needs: [lint-backend, lint-frontend, test-backend, build-images]
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
