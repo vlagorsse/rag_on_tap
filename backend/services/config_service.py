@@ -26,7 +26,7 @@ class ConfigService(BaseSettings):
     llm_provider: LLMProvider = Field(default=LLMProvider.GOOGLE, alias="LLM_PROVIDER")
     openrouter_api_key: str | None = Field(default=None, alias="OPENROUTER_API_KEY")
     openrouter_model: str = Field(
-        default="z-ai/glm-4.5-air:free",
+        default="google/gemini-2.5-flash-lite",
         alias="OPENROUTER_MODEL",
     )
 
