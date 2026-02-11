@@ -34,7 +34,6 @@ services:
       - "8002:8000"
     volumes:
       - ./backend:/app
-      - ./.env:/app/.env
       - hf_cache:/root/.cache/huggingface
 
   frontend:
