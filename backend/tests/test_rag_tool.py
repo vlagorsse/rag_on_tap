@@ -73,3 +73,40 @@ class TestBeerRAGTool:
                 == "https://www.brewersfriend.com/homebrew/recipe/view/12345"
             )
             assert tool._get_recipe_url("") == "Unknown URL"
+
+    @patch("services.rag_tool.VectorStoreService")
+    @patch("services.rag_tool.RerankerService")
+    def test_run_filtering_logic(
+        self, mock_reranker_class, mock_vector_store_class, mock_config
+    ):
+        """Test that the tool constructs the filter correctly."""
+        mock_vs = mock_vector_store_class.return_value
+        mock_rr = mock_reranker_class.return_value
+        mock_vs.similarity_search.return_value = []
+        mock_rr.rerank.return_value = []
+
+        tool = BeerRAGTool(
+            config=mock_config, model_name="m", collection_name="c", rerank_model="r"
+        )
+
+        # Test with multiple filters and styles
+        tool._run(
+            "query", styles=["American IPA", "English IPA"], abv_lte=7.0, abv_gt=5.0
+        )
+
+        expected_filter = {
+            "$and": [
+                {"style": {"$in": ["American IPA", "English IPA"]}},
+                {"abv": {"$lte": 7.0}},
+                {"abv": {"$gt": 5.0}},
+            ]
+        }
+        mock_vs.similarity_search.assert_called_with(
+            "query", k=10, filter=expected_filter
+        )
+
+        # Test with single style filter
+        tool._run("query", styles=["American IPA"])
+        mock_vs.similarity_search.assert_called_with(
+            "query", k=10, filter={"style": "American IPA"}
+        )

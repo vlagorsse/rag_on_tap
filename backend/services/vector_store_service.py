@@ -79,6 +79,11 @@ class VectorStoreService(StorageService):
             )
         logger.info("Storage complete!")
 
-    def similarity_search(self, query: str, k: int = 3):
+    def similarity_search(
+        self,
+        query: str,
+        k: int = 3,
+        filter: dict | None = None,
+    ):
         """Performs a similarity search and returns documents with scores."""
-        return self.vectorstore.similarity_search_with_score(query, k=k)
+        return self.vectorstore.similarity_search_with_score(query, k=k, filter=filter)
