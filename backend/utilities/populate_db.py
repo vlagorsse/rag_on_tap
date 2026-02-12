@@ -67,8 +67,7 @@ def populate_db(
     csv_path: str,
     limit: int | None,
     storage_service: StorageService,
-    chunk_size: int = 500,
-    chunk_overlap: int = 0,
+    batch_size: int = 100,
 ):
     """Orchestrates the loading, splitting, and storing process using dependency injection."""
 
@@ -78,13 +77,14 @@ def populate_db(
         return
 
     # Chunking
-    chunking_service = ChunkingService(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap
-    )
+    chunking_service = ChunkingService()
     split_docs = chunking_service.split_documents(documents)
 
     # Storage via injected service
-    storage_service.add_documents(split_docs)
+    if isinstance(storage_service, VectorStoreService):
+        storage_service.add_documents(split_docs, batch_size=batch_size)
+    else:
+        storage_service.add_documents(split_docs)
 
 
 def run_population(args: argparse.Namespace):
@@ -95,15 +95,17 @@ def run_population(args: argparse.Namespace):
     else:
         config = ConfigService()
         storage_service = VectorStoreService(
-            config=config, model_name=args.model, collection_name=args.collection
+            config=config,
+            model_name=args.model,
+            collection_name=args.collection,
+            num_threads=args.num_threads,
         )
 
     populate_db(
         csv_path=args.csv_path,
         limit=args.limit,
         storage_service=storage_service,
-        chunk_size=args.chunk_size,
-        chunk_overlap=args.chunk_overlap,
+        batch_size=args.batch_size,
     )
 
 
@@ -131,16 +133,18 @@ def main():
         help=f"Collection name (default: {COLLECTION_NAME_DEFAULT})",
     )
     parser.add_argument(
-        "--chunk_size",
+        "--batch_size",
+        "-b",
         type=int,
-        default=500,
-        help="Chunk size for splitting documents (default: 500)",
+        default=100,
+        help="Batch size for adding documents to vector store (default: 100)",
     )
     parser.add_argument(
-        "--chunk_overlap",
+        "--num_threads",
+        "-t",
         type=int,
-        default=0,
-        help="Chunk overlap for splitting documents (default: 0)",
+        default=2,
+        help="Number of CPU threads for the embedding model (default: 2)",
     )
     parser.add_argument(
         "--dry-run",
