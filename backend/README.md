@@ -9,22 +9,28 @@ This project serves as a showcase for advanced RAG techniques applied to a speci
 The core of this system is the **HyPE (Hypothetical Questions for Enrichment)** approach, inspired by recent research in RAG optimization ([Hypothetical Questions for Enrichment](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5139335)).
 
 ### 1. Structured Data Enrichment
+
 Raw beer recipes are often difficult to query. They contain technical metrics (ABV, IBU, SRM), community slang, and messy user notes. We use **Gemini 2.5 Flash Lite** with structured output to "interrogate" each recipe using a standardized set of 15+ sommelier-style questions covering:
+
 - **Appearance**: Color, clarity, and head retention.
 - **Aroma**: Malt profile, hop characteristics, and yeast esters.
 - **Flavor & Mouthfeel**: Balance, bitterness quality, body, and finish.
 - **Overall Impression**: Style accuracy and drinkability.
 
-By integrating user comments and translating technical metrics into descriptive language, the RAG can answer nuanced queries like *"Find me a stout that feels creamy and has chocolate notes but isn't too boozy."*
+By integrating user comments and translating technical metrics into descriptive language, the RAG can answer nuanced queries like _"Find me a stout that feels creamy and has chocolate notes but isn't too boozy."_
 
 ### 2. Contextual Chunking
+
 Standard character-based chunking often loses the relationship between a fragment of text and its source. Our `ChunkingService` implements **Contextual Chunk Headers**:
+
 - **Strict Splitting**: Documents are split by logical sections (e.g., "Aroma", "Mouthfeel").
 - **Header Injection**: Each chunk is prepended with its source metadata: `Recipe: [Name] | Style: [Style] | Section: [Category] | Text: ...`
 - **Impact**: This ensures that even small text fragments carry enough context for the embedding model and the reranker to understand exactly what they refer to.
 
 ### 3. Two-Stage Retrieval
+
 To balance speed and precision, we use a two-stage pipeline:
+
 1.  **Vector Search**: Candidate retrieval using **Qwen3-Embedding-0.6B** (optimized for low latency and high recall).
 2.  **Reranking**: Precision refinement using **Qwen3-Reranker-0.6B**. This cross-encoder step ensures that the most relevant chunks are promoted, significantly reducing hallucinations.
 
@@ -57,7 +63,9 @@ The project is organized as a decoupled Full-Stack application:
 ## 🚦 Quick Start
 
 ### 1. Environment Setup
+
 Create a `.env` file in the **root** directory:
+
 ```bash
 POSTGRES_HOST=localhost
 POSTGRES_USER=user
@@ -72,6 +80,7 @@ GOOGLE_API_KEY="your-api-key-here"
 ### 2. Local Development
 
 #### Backend
+
 ```bash
 cd backend
 uv sync
@@ -80,6 +89,7 @@ uvicorn main:app --reload
 ```
 
 #### Frontend
+
 ```bash
 cd frontend
 npm install
@@ -87,18 +97,22 @@ npm run dev
 ```
 
 ### 3. Docker Compose (Full Stack)
+
 ```bash
 docker compose up
 ```
+
 The application will be available at `http://localhost:3000`.
 
 ---
 
 ## 🛠️ Data Preparation Pipeline
+
 Before chatting, ensure your database is populated:
 
 1. **Enrich**: `hype-enrichment -o enriched_recipes.csv`
 2. **Populate**: `populate-db enriched_recipes.csv`
 
 ## 📈 Performance Insights
+
 Transitioning from small local models (Qwen2.5-1.5B) to **Gemini 2.5 Flash Lite** for enrichment drastically improved result quality. The structured output eliminated common parsing errors, while the inclusion of contextual headers in chunks solved early issues where the reranker was performing poorly due to lost context.
