@@ -8,7 +8,7 @@ services:
       - default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.beer_rag.rule=Host(`rag-on-tap.com`)"
+      - "traefik.http.routers.beer_rag.rule=Host(`app.rag-on-tap.com`)"
       - "traefik.http.routers.beer_rag.entrypoints=websecure"
       - "traefik.http.routers.beer_rag.tls.certresolver=myresolver"
       - "traefik.http.services.beer_rag.loadbalancer.server.port=80"
