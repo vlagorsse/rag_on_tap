@@ -152,11 +152,13 @@ class ChatService:
                     if cur.fetchone()[0]:
                         cur.execute(
                             "DELETE FROM checkpoints WHERE checkpoint_id IN (SELECT checkpoint_id FROM checkpoints WHERE created_at < NOW() - %s * INTERVAL '1 day')",
-                            (days,)
+                            (days,),
                         )
                         deleted = cur.rowcount
                         conn.commit()
-                        logger.info(f"Cleanup finished. Removed {deleted} old checkpoints.")
+                        logger.info(
+                            f"Cleanup finished. Removed {deleted} old checkpoints."
+                        )
         except Exception as e:
             logger.error(f"Error during checkpoint cleanup: {e}")
 
