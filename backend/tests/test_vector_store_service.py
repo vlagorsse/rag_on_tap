@@ -70,4 +70,6 @@ class TestVectorStoreService:
         query = "beer"
         service.similarity_search(query, k=5)
 
-        mock_vs.similarity_search_with_score.assert_called_once_with(query, k=5)
+        mock_vs.similarity_search_with_score.assert_called_once_with(
+            query, k=5, filter=None
+        )
