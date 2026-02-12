@@ -141,6 +141,25 @@ class ChatService:
             logger.error(f"Error in ChatService ({session_id}): {e}")
             return f"I'm sorry, I encountered an error: {str(e)}"
 
+    def cleanup_old_checkpoints(self, days: int = 7):
+        """Deletes checkpoints older than the specified number of days."""
+        logger.info(f"Cleaning up checkpoints older than {days} days...")
+        try:
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    # check if table exists first to avoid errors on first run
+                    cur.execute("SELECT to_regclass('checkpoints');")
+                    if cur.fetchone()[0]:
+                        cur.execute(
+                            "DELETE FROM checkpoints WHERE checkpoint_id IN (SELECT checkpoint_id FROM checkpoints WHERE created_at < NOW() - %s * INTERVAL '1 day')",
+                            (days,)
+                        )
+                        deleted = cur.rowcount
+                        conn.commit()
+                        logger.info(f"Cleanup finished. Removed {deleted} old checkpoints.")
+        except Exception as e:
+            logger.error(f"Error during checkpoint cleanup: {e}")
+
     def astream_chat(self, user_input: str, session_id: str):
         """Streams the agent response using a synchronous generator."""
         try:
