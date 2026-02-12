@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import UUID4, BaseModel
 
 from services.chat_service import ChatService
 from services.config_service import ConfigService
@@ -22,7 +22,7 @@ def get_chat_service():
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: str | None = None
+    session_id: UUID4
 
 
 class RecipeResponse(BaseModel):
@@ -42,20 +42,9 @@ async def chat_endpoint(
     # Langchain-Postgres requires UUIDs for session_ids
     session_id = request.session_id
 
-    if not session_id or session_id == "default":
-        session_id = str(uuid.uuid4())
-    else:
-        # Validate if it's already a UUID, or hash it into one
-        try:
-            uuid.UUID(session_id)
-        except ValueError:
-            # If the user provided a string that's not a UUID,
-            # we still hash it to keep the session persistent for that string
-            session_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, session_id))
-
     async def event_generator():
         for chunk in chat_service.astream_chat(
-            request.message, session_id=session_id
+            request.message, session_id=str(session_id)
         ):
             yield chunk
 

@@ -142,7 +142,7 @@ class ChatService:
             logger.error(f"Error in ChatService ({session_id}): {e}")
             return f"I'm sorry, I encountered an error: {str(e)}"
 
-    def astream_chat(self, user_input: str, session_id: str = "default"):
+    def astream_chat(self, user_input: str, session_id: str):
         """Streams the agent response using a synchronous generator."""
         try:
             for msg, metadata in self.agent.stream(
