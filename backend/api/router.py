@@ -54,7 +54,7 @@ async def chat_endpoint(
             session_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, session_id))
 
     async def event_generator():
-        async for chunk in chat_service.astream_chat(
+        for chunk in chat_service.astream_chat(
             request.message, session_id=session_id
         ):
             yield chunk

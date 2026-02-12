@@ -1,14 +1,16 @@
-import contextlib
 import logging
 import uuid
 
 import psycopg
-from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
-from langchain_classic.memory import ConversationBufferWindowMemory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_agent
+from langchain.agents.middleware import before_model
+from langchain_core.messages import RemoveMessage, trim_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-from langchain_postgres import PostgresChatMessageHistory
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 from services.config_service import ConfigService, LLMProvider
 from services.rag_tool import BeerRAGTool
@@ -62,116 +64,102 @@ class ChatService:
         )
         self.tools = [self.rag_tool]
 
-        # 3. Setup Prompt
-        self.prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    (
-                        "You are RAG-on-Tap, an expert beer sommelier and master brewer. "
-                        "Your goal is to provide accurate, technical, and inspiring brewing advice "
-                        "Use the provided 'search_beer_recipes' tool to find specific data whenever needed. "
-                        "When you provide information from a recipe, ALWAYS cite the Recipe Name and provide the Source URL. "
-                        "Be professional, encouraging, and accurate."
-                    ),
-                ),
-                MessagesPlaceholder(variable_name="chat_history"),
-                ("human", "{input}"),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-            ]
-        )
+        # 3. Setup Trimming Middleware
+        @before_model
+        def trim_history(state, config) -> dict | None:
+            messages = state["messages"]
 
-        # 4. Shared Agent (stateless)
-        self.agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)
-        self.max_token_limit = max_token_limit
+            if len(messages) <= 10:
+                return None  # No changes needed
 
-        # 5. Database Setup for Memory
-        self.connection_string = config.connection_string
-        # PostgresChatMessageHistory.create_tables needs a connection, not a string
-        # We also strip the sqlalchemy driver prefix for psycopg
-        self.psycopg_conn_str = self.connection_string.replace(
+            trimmed = trim_messages(
+                messages,
+                strategy="last",
+                token_counter=len,
+                max_tokens=20,
+                start_on="human",
+                include_system=True,
+            )
+
+            return {"messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), *trimmed]}
+
+        # 4. Initialize Database Pool and Checkpointer
+        self.psycopg_conn_str = config.connection_string.replace(
             "postgresql+psycopg://", "postgresql://"
         )
+
+        # Run setup with autocommit=True to allow CREATE INDEX CONCURRENTLY
         try:
-            with psycopg.connect(self.psycopg_conn_str) as conn:
-                PostgresChatMessageHistory.create_tables(conn, "chat_history")
-            logger.info("Chat history tables verified/created.")
+            with psycopg.connect(self.psycopg_conn_str, autocommit=True) as conn:
+                setup_saver = PostgresSaver(conn)
+                setup_saver.setup()
+            logger.info("Checkpointer tables verified/created.")
         except Exception as e:
-            logger.error(f"Failed to initialize chat history tables: {e}")
+            logger.error(f"Failed to setup checkpointer tables: {e}")
 
-    @contextlib.contextmanager
-    def _session_executor(self, session_id: str):
-        """Context manager that provides a transient AgentExecutor with a scoped DB connection."""
-        conn = None
-        try:
-            conn = psycopg.connect(self.psycopg_conn_str)
-            chat_history = PostgresChatMessageHistory(
-                "chat_history",
-                session_id,
-                sync_connection=conn,
-            )
+        # Use a synchronous connection pool
+        self.pool = ConnectionPool(
+            self.psycopg_conn_str,
+            min_size=1,
+            max_size=10,
+            kwargs={"row_factory": dict_row},
+        )
 
-            memory = ConversationBufferWindowMemory(
-                k=10,
-                memory_key="chat_history",
-                chat_memory=chat_history,
-                return_messages=True,
-            )
+        # Use synchronous PostgresSaver
+        self.saver = PostgresSaver(self.pool)
 
-            executor = AgentExecutor(
-                agent=self.agent,
-                tools=self.tools,
-                verbose=False,
-                handle_parsing_errors=True,
-                memory=memory,
-            )
-            yield executor
-        finally:
-            if conn:
-                conn.close()
+        # 5. Initialize and compile the Managed Agent once
+        self.agent = create_agent(
+            model=self.llm,
+            tools=self.tools,
+            system_prompt=(
+                "You are RAG-on-Tap, an expert beer sommelier and master brewer. "
+                "Your goal is to provide accurate, technical, and inspiring brewing advice. "
+                "Use the provided 'search_beer_recipes' tool to find specific data whenever needed. "
+                "When you provide information from a recipe, ALWAYS cite the Recipe Name and provide the Source URL. "
+                "Be professional, encouraging, and accurate."
+            ),
+            middleware=[trim_history],
+            checkpointer=self.saver,
+        )
+        logger.info(
+            "ChatService initialized with persistent agent and sync connection pool."
+        )
 
     def chat(self, user_input: str, session_id: str | None = None) -> str:
-        """Sends a message to the agent and returns the response."""
-        # Ensure session_id is a UUID4
+        """Sends a message to the agent and returns the response (Synchronously)."""
         if session_id is None:
             session_id = str(uuid.uuid4())
-        else:
-            try:
-                # Validate it is a valid UUID
-                val = uuid.UUID(session_id)
-                session_id = str(val)
-            except ValueError:
-                # If not a valid UUID, generate a new random one
-                session_id = str(uuid.uuid4())
 
         try:
-            with self._session_executor(session_id) as executor:
-                response = executor.invoke({"input": user_input})
-                return response["output"]
+            response = self.agent.invoke(
+                {"messages": [{"role": "user", "content": user_input}]},
+                config={"configurable": {"thread_id": session_id}},
+            )
+            return response["messages"][-1].content
 
         except Exception as e:
             logger.error(f"Error in ChatService ({session_id}): {e}")
             return f"I'm sorry, I encountered an error: {str(e)}"
 
-    async def astream_chat(self, user_input: str, session_id: str = "default"):
-        """Asynchronously streams the agent response."""
+    def astream_chat(self, user_input: str, session_id: str = "default"):
+        """Streams the agent response using a synchronous generator."""
         try:
-            with self._session_executor(session_id) as executor:
-                async for chunk in executor.astream({"input": user_input}):
-                    # LangChain agent streaming returns different types of chunks
-                    if "actions" in chunk:
-                        # Intermediate tool calls
-                        for action in chunk["actions"]:
-                            logger.info(
-                                f"Agent ({session_id}) calling tool: {action.tool}"
-                            )
-                    elif "steps" in chunk:
-                        # Results from tools
-                        pass
-                    elif "output" in chunk:
-                        # Final output part
-                        yield chunk["output"]
+            for msg, metadata in self.agent.stream(
+                {"messages": [{"role": "user", "content": user_input}]},
+                config={"configurable": {"thread_id": session_id}},
+                stream_mode="messages",
+            ):
+                logger.debug(
+                    f"Stream yielded: type={msg.type} content_type={type(msg.content)}"
+                )
 
-        except Exception as e:
-            logger.error(f"Error in streaming ChatService ({session_id}): {e}")
-            yield f"\n[Error: {str(e)}]"
+                # Check for AI message type case-insensitively
+                msg_type = str(msg.type).lower()
+                if (msg_type == "ai" or msg_type == "aimessagechunk") and msg.content:
+                    if isinstance(msg.content, str):
+                        yield msg.content
+
+        except Exception:
+            logger.exception(f"Error in streaming ChatService ({session_id})")
+            yield "\n[I encountered an error processing your request.]"
