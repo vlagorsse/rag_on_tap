@@ -26,7 +26,6 @@ class ChatService:
         embedding_model: str = "Qwen/Qwen3-Embedding-0.6B",
         rerank_model: str = "Qwen/Qwen3-Reranker-0.6B",
         collection_name: str = "beer_recipes",
-        max_token_limit: int = 1000,
     ):
         self.config = config
 
