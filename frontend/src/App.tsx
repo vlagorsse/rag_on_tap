@@ -3,6 +3,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { ChatMessage } from "./components/ChatMessage";
 import { ChatInput } from "./components/ChatInput";
+import { WelcomeModal } from "./components/WelcomeModal";
 
 interface Message {
   role: "user" | "assistant";
@@ -99,6 +100,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-stone-950 text-stone-100 overflow-hidden font-sans">
+      <WelcomeModal />
       <Sidebar />
 
       {/* Main Content */}
