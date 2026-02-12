@@ -9,6 +9,18 @@ interface Message {
   content: string;
 }
 
+// custom implementation working on non https
+function uuidv4(): string {
+  return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(
+    /[018]/g,
+    (c: any) =>
+      (
+        c ^
+        (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+      ).toString(16),
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -20,6 +32,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sessionId, setSessionId] = useState(() => uuidv4());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +46,7 @@ export default function App() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
+    const currentInput = input;
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -45,7 +59,8 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input,
+          message: currentInput,
+          session_id: sessionId,
         }),
       });
 
