@@ -8,10 +8,9 @@ logger = logging.getLogger(__name__)
 class ChunkingService:
     """Handles splitting structured documents into smaller chunks with contextual headers."""
 
-    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 0):
-        # Kept for API compatibility, though we split strictly by \n\n
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
+    def __init__(self):
+        """Initializes the service. Logic is strictly based on document structure (\n\n)."""
+        pass
 
     def _split_section_and_content(self, text: str) -> tuple[str, str]:
         """Splits the text into (section_name, actual_content)."""

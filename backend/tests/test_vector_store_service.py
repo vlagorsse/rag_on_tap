@@ -14,20 +14,30 @@ class TestVectorStoreService:
         config.connection_string = "postgresql+psycopg://user:pass@host:5432/db"
         return config
 
-    @patch("services.vector_store_service.HuggingFaceEmbeddings")
-    @patch("services.vector_store_service.PGVector")
-    def test_initialization(self, mock_pgvector, mock_embeddings, mock_config):
-        """Test that the service initializes embeddings and PGVector correctly."""
-        service = VectorStoreService(
-            config=mock_config,
-            model_name="test-model",
-            collection_name="test-collection",
-        )
+        @patch("services.vector_store_service.HuggingFaceEmbeddings")
+        @patch("services.vector_store_service.PGVector")
+        @patch("services.vector_store_service.torch")
+        def test_initialization(
+            self, mock_torch, mock_pgvector, mock_embeddings, mock_config
+        ):
+            """Test that the service initializes embeddings and PGVector correctly."""
 
-        # Verify embeddings init
-        mock_embeddings.assert_called_once_with(
-            model_name="test-model", model_kwargs={}
-        )
+            mock_torch.cuda.is_available.return_value = False
+
+            service = VectorStoreService(
+                config=mock_config,
+                model_name="test-model",
+                collection_name="test-collection",
+                num_threads=4,
+            )
+
+            # Verify embeddings init
+
+            mock_embeddings.assert_called_once_with(
+                model_name="test-model", model_kwargs={"device": "cpu"}
+            )
+
+            mock_torch.set_num_threads.assert_called_once_with(4)
 
         # Verify PGVector init
         mock_pgvector.assert_called_once_with(
