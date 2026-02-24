@@ -64,22 +64,22 @@ The project is organized as a decoupled Full-Stack application:
 
 ### 1. Environment Setup
 
-Create a `.env` file in the **root** directory:
+Copy the sample environment file and fill in your API keys:
 
 ```bash
-POSTGRES_HOST=localhost
-POSTGRES_USER=user
-POSTGRES_PASSWORD=password
-POSTGRES_DB=beer_rag
-POSTGRES_PORT=6543
-
-# Google AI Studio (Required for Chat)
-GOOGLE_API_KEY="your-api-key-here"
+cp .env.sample .env
 ```
+
+The `.env` file contains configuration for both local development and Docker:
+
+- **LLM Keys**: Required for the RAG enrichment and chat.
+- **Database**: Credentials for PostgreSQL/PGVector.
 
 ### 2. Local Development
 
 #### Backend
+
+Ensure you have a local Postgres instance running or use Docker for the database.
 
 ```bash
 cd backend
@@ -102,7 +102,10 @@ npm run dev
 docker compose up
 ```
 
-The application will be available at `http://localhost:3000`.
+The application will be available at:
+
+- **Frontend**: `http://localhost:3001`
+- **Backend API**: `http://localhost:8002`
 
 ---
 
