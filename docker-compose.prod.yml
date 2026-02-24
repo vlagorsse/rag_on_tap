@@ -17,13 +17,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   db:
     restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
 networks:
   web:
