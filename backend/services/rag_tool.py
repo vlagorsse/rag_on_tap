@@ -187,7 +187,7 @@ class BeerRAGTool(BaseTool):
                 combined_content = "\n\n".join(data["contents"])
                 output = (
                     f"--- Recipe: {data['name']} ({data['style']}) ---\n"
-                    f"URL: {data['url']}\n"
+                    f"Source URL: {data['url']}\n"
                     f"Details:\n{combined_content}\n"
                 )
                 formatted_outputs.append(output)

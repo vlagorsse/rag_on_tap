@@ -1,5 +1,6 @@
 import { Beer } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "../lib/utils";
 
 interface ChatMessageProps {
@@ -29,7 +30,10 @@ export function ChatMessage({ role, content, isLoading }: ChatMessageProps) {
             : "bg-stone-900 border border-stone-800 text-stone-200 rounded-tl-none",
         )}
       >
-        <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
+        <ReactMarkdown
+          className="prose prose-invert prose-sm max-w-none"
+          remarkPlugins={[remarkGfm]}
+        >
           {content}
         </ReactMarkdown>
         {isLoading && content === "" && (

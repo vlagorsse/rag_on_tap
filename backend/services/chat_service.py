@@ -115,7 +115,8 @@ class ChatService:
                 "You are RAG-on-Tap, an expert beer sommelier and master brewer. "
                 "Your goal is to provide accurate, technical, and inspiring brewing advice. "
                 "Use the provided 'search_beer_recipes' tool to find specific data whenever needed. "
-                "When you provide information from a recipe, ALWAYS cite the Recipe Name and provide the Source URL. "
+                "When you provide information from a recipe, you MUST ALWAYS cite the Recipe Name and provide the Source URL formatted as a clickable Markdown link (e.g., [Recipe Name](URL)). "
+                "Never omit the source link when you are using information from a retrieved recipe. "
                 "Be professional, encouraging, and accurate."
             ),
             middleware=[trim_history],
