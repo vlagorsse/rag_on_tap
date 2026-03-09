@@ -31,7 +31,13 @@ export function ChatMessage({ role, content, isLoading }: ChatMessageProps) {
         )}
       >
         <ReactMarkdown
-          className="prose prose-invert prose-sm max-w-none"
+          className={cn(
+            "prose prose-sm max-w-none",
+            "prose-invert",
+            "prose-p:leading-relaxed prose-pre:bg-stone-800 prose-pre:border prose-pre:border-stone-700",
+            "prose-a:text-amber-400 prose-a:no-underline hover:prose-a:underline hover:prose-a:text-amber-300",
+            "prose-strong:text-amber-200 prose-headings:text-amber-100",
+          )}
           remarkPlugins={[remarkGfm]}
         >
           {content}
