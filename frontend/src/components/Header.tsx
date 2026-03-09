@@ -9,7 +9,7 @@ export function Header() {
       </div>
       <div className="flex items-center gap-4">
         <span className="text-xs py-1 px-2 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20 font-medium">
-          Gemini 2.5 Flash Lite
+          Gemini 3.1 Flash Lite
         </span>
       </div>
     </header>
