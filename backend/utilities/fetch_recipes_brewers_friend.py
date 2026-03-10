@@ -5,12 +5,13 @@ import random
 import re
 import time
 
-import requests
 from bs4 import BeautifulSoup
+from fetch_utils import fetch_and_save_recipe, safe_request, setup_logging
 
 BASE_URL = "https://www.brewersfriend.com"
 SEARCH_URL = "https://www.brewersfriend.com/search/index.php"
-RECIPES_DIR = "recipes"
+RECIPES_DIR = "recipes/brewers_friend"
+ID_PATTERN = r"/view/(\d+)/"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -20,43 +21,6 @@ headers = {
 }
 
 logger = logging.getLogger(__name__)
-
-
-def safe_request(url, method="GET", data=None, headers=None, max_retries=5):
-    retries = 0
-    backoff = 2
-
-    while retries < max_retries:
-        try:
-            if method == "GET":
-                response = requests.get(url, headers=headers)
-            else:
-                response = requests.post(url, headers=headers, data=data)
-
-            if response.status_code == 429:
-                wait_time = backoff * (2**retries) + random.uniform(0, 1)
-                logger.warning(
-                    f"Rate limited (429). Waiting {wait_time:.2f}s before retry {retries + 1}/{max_retries}..."
-                )
-                time.sleep(wait_time)
-                retries += 1
-                continue
-
-            response.raise_for_status()
-            return response
-
-        except requests.exceptions.RequestException as e:
-            if (
-                isinstance(e, requests.exceptions.HTTPError)
-                and e.response.status_code == 429
-            ):
-                # Handled above
-                continue
-            logger.error(f"Request error: {e}")
-            retries += 1
-            time.sleep(backoff * retries)
-
-    return None
 
 
 def get_recipe_links():
@@ -107,32 +71,8 @@ def get_recipe_links():
     return links[:1000]
 
 
-def fetch_and_save_recipe(url):
-    # Extract ID from URL
-    match = re.search(r"/view/(\d+)/", url)
-    if not match:
-        logger.error(f"Could not extract ID from {url}")
-        return
-
-    recipe_id = match.group(1)
-    filename = os.path.join(RECIPES_DIR, f"recipe_{recipe_id}.html")
-
-    if os.path.exists(filename):
-        return
-
-    response = safe_request(url, headers=headers)
-    if response:
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(response.text)
-        # Random delay between individual recipe fetches
-        time.sleep(random.uniform(1, 3))
-
-
 def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    setup_logging()
     if not os.path.exists(RECIPES_DIR):
         os.makedirs(RECIPES_DIR)
 
@@ -144,7 +84,7 @@ def main():
     for i, link in enumerate(links):
         if (i + 1) % 10 == 0:
             logger.info(f"Progress: {i + 1}/{len(links)}")
-        fetch_and_save_recipe(link)
+        fetch_and_save_recipe(link, RECIPES_DIR, ID_PATTERN, headers=headers)
 
     logger.info("Done.")
 
