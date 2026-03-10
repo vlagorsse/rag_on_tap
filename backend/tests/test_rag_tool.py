@@ -102,11 +102,34 @@ class TestBeerRAGTool:
             ]
         }
         mock_vs.similarity_search.assert_called_with(
-            "query", k=10, filter=expected_filter
+            "query", k=15, filter=expected_filter
         )
 
         # Test with single style filter
         tool._run("query", styles=["American IPA"])
         mock_vs.similarity_search.assert_called_with(
-            "query", k=10, filter={"style": "American IPA"}
+            "query", k=15, filter={"style": "American IPA"}
         )
+
+    @patch("services.rag_tool.VectorStoreService")
+    @patch("services.rag_tool.RerankerService")
+    def test_run_top_k_parameter(
+        self, mock_reranker_class, mock_vector_store_class, mock_config
+    ):
+        """Test that the top_k parameter is correctly used in search and reranking."""
+        mock_vs = mock_vector_store_class.return_value
+        mock_rr = mock_reranker_class.return_value
+        mock_vs.similarity_search.return_value = []
+        mock_rr.rerank.return_value = []
+
+        tool = BeerRAGTool(
+            config=mock_config, model_name="m", collection_name="c", rerank_model="r"
+        )
+
+        # Test with top_k=5
+        tool._run("query", top_k=5)
+
+        # k should be top_k * 5 = 25
+        mock_vs.similarity_search.assert_called_with("query", k=25, filter=None)
+        # rerank should use top_k=5
+        mock_rr.rerank.assert_called_with("query", [], top_k=5)

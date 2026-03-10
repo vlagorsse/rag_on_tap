@@ -57,6 +57,10 @@ class BeerSearchInput(BaseModel):
     query: str = Field(
         description="The search query for beer recipes, ingredients, or brewing techniques."
     )
+    top_k: int = Field(
+        default=3,
+        description="The number of recipes to return. Default is 3.",
+    )
     styles: list[StyleEnum] | None = Field(
         default=None, description="Filter query by one or more beer styles"
     )
@@ -82,7 +86,7 @@ class BeerRAGTool(BaseTool):
     name: str = "search_beer_recipes"
     description: str = (
         "Useful for searching specific beer recipes, styles, ingredients, and brewing steps. "
-        "Returns the most relevant recipe sections with metadata and source URLs."
+        "Returns the `top_k` most relevant recipe sections with metadata and source URLs."
     )
     args_schema: Type[BaseModel] = BeerSearchInput
 
@@ -112,6 +116,7 @@ class BeerRAGTool(BaseTool):
     def _run(
         self,
         query: str,
+        top_k: int = 3,
         styles: list[StyleEnum] | None = None,
         abv_lte: float | None = None,
         abv_gt: float | None = None,
@@ -121,7 +126,7 @@ class BeerRAGTool(BaseTool):
         """Execute the tool."""
         try:
             logger.info(
-                f"Tool searching for: query {query}, styles {styles}, abv_lte {abv_lte}, abv_gt {abv_gt}, ibu_lte {ibu_lte}, ibu_gt {ibu_gt}"
+                f"Tool searching for: query {query}, top_k {top_k}, styles {styles}, abv_lte {abv_lte}, abv_gt {abv_gt}, ibu_lte {ibu_lte}, ibu_gt {ibu_gt}"
             )
 
             # Construct metadata filtering
@@ -150,11 +155,11 @@ class BeerRAGTool(BaseTool):
 
             # 1. Similarity search (candidates)
             initial_results = self._vector_store.similarity_search(
-                query, k=10, filter=filter
+                query, k=top_k * 5, filter=filter
             )
 
             # 2. Rerank
-            results = self._reranker.rerank(query, initial_results, top_k=3)
+            results = self._reranker.rerank(query, initial_results, top_k=top_k)
 
             if not results:
                 return "No relevant beer recipes found for this query."
@@ -201,6 +206,7 @@ class BeerRAGTool(BaseTool):
     async def _arun(
         self,
         query: str,
+        top_k: int = 3,
         styles: list[StyleEnum] | None = None,
         abv_lte: float | None = None,
         abv_gt: float | None = None,
@@ -210,6 +216,7 @@ class BeerRAGTool(BaseTool):
         """Async version of the tool."""
         return self._run(
             query,
+            top_k=top_k,
             styles=styles,
             abv_lte=abv_lte,
             abv_gt=abv_gt,
