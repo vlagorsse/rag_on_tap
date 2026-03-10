@@ -35,11 +35,13 @@ export function Sidebar() {
       <div className="p-4 border-t border-stone-800 space-y-4">
         <div className="flex items-center gap-2 text-xs text-stone-500 hover:text-stone-300 cursor-pointer">
           <Info className="h-4 w-4" />
-          About HyPE RAG
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5139335">
+            About HyPE RAG
+          </a>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-500 hover:text-stone-300 cursor-pointer">
           <Github className="h-4 w-4" />
-          View Source
+          <a href="https://github.com/vlagorsse/rag_on_tap">View Source</a>
         </div>
       </div>
     </div>
