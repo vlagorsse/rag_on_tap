@@ -4,6 +4,8 @@ A high-performance Retrieval-Augmented Generation (RAG) system for beer recipes,
 
 This project serves as a showcase for advanced RAG techniques applied to a specialized domain (homebrewing), demonstrating how to transform messy, technical raw data into a highly searchable and informative knowledge base.
 
+The app can be played with here: [RAG on tap](https://app.rag-on-tap.com).
+
 ## 🚀 The Approach: HyPE Enrichment
 
 The core of this system is the **HyPE (Hypothetical Questions for Enrichment)** approach, inspired by recent research in RAG optimization ([Hypothetical Questions for Enrichment](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5139335)).
